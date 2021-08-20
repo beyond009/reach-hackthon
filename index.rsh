@@ -17,16 +17,32 @@ const newBoard = () => ({
   l3: Array.replicate(3, 2),
   win: false,
 });
+const validStep = (step) => 0 <= step && step < 4;
 function placeBoard(place, board) {
   // if (place[2] == 0) {
+  // require(validStep(place[0]));
+  // require(validStep(pos12));
+  // require(validStep(pos21));
+  // require(validStep(pos22));
   //   if (place[0] == 0) {
-  //     return {
-  //       flag: !board.flag,
-  //       l1: board.l1.set(place[3], board.l1[place[1]]).set(place[1], 0),
-  //       l2: board.l2,
-  //       l3: board.l3,
-  //       win: false,
-  //     };
+  return {
+    flag: !board.flag,
+    l1: board.l1,
+
+    // place[2] === 0 && place[0] === 0
+    //   ? board.l1.set(place[3], board.l1[place[1]]).set(place[1], 0)
+    //   : place[2] === 0
+    //   ? board.l1.set(place[3], board.l1[place[1]])
+    //   : board.l1,
+    l2: board.l2,
+    // place[2] == 1 && place[0] == 1
+    //   ? board.l2.set(place[3], board.l2[place[1]]).set(place[1], 0)
+    //   : place[2] == 1
+    //   ? board.l2.set(place[3], board.l2[place[1]])
+    //   : board.l2,
+    l3: board.l3,
+    win: false,
+  };
   //   }
   //   if (place[0] == 1) {
   //     return {
@@ -47,7 +63,6 @@ function placeBoard(place, board) {
   //     };
   //   }
   // } else {
-  return board;
   // }
   // if (place[2] == 1) {
   //   if (place[0] == 0) {
@@ -110,7 +125,27 @@ function checkValidPlace(place) {
   //check valid
   return true;
 }
-function checkWin() {}
+
+function getLine(singleBoard, i, len) {
+  return (
+    getCell(singleBoard, i) &&
+    getCell(singleBoard, add(i, len)) &&
+    getCell(singleBoard, i + len + len)
+  );
+}
+
+function isWin(singleBoard) {
+  return (
+    getLine(singleBoard, 0, 1) ||
+    getLine(singleBoard, 3, 1) ||
+    getLine(singleBoard, 6, 1) ||
+    getLine(singleBoard, 0, 3) ||
+    getLine(singleBoard, 1, 3) ||
+    getLine(singleBoard, 2, 3) ||
+    getLine(singleBoard, 0, 4) ||
+    getLine(singleBoard, 2, 2)
+  );
+}
 // const winner;
 function getValidPlace(interact) {
   const place = interact.getPlace();
@@ -120,7 +155,7 @@ function getValidPlace(interact) {
 
 const Player = {
   ...hasRandom,
-  getPlace: Fun([], Tuple(UInt, UInt, UInt, UInt)),
+  getPlace: Fun([], Array(UInt, 4)),
   seeBoard: Fun([Board_type], Null),
   seeOutcome: Fun([UInt], Null),
   informTimeout: Fun([], Null),
@@ -187,9 +222,11 @@ export const main = Reach.App(() => {
       board = placeBoard(placeBob, board);
       continue;
     }
-    //checkWin()
+    if (isWin()) {
+      const outcome = isWinner() ? A_WINS : B_WINS;
+      break;
+    }
   }
-  const outcome = A_WINS;
   // assert(outcome == A_WINS || outcome == B_WINS);
   transfer(2 * wager).to(outcome == A_WINS ? Alice : Bob);
   commit();

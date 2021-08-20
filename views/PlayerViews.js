@@ -18,7 +18,8 @@ function Square(props) {
       last.pos2 = props.pos2;
     } else {
       setValue(last.val);
-      props.parent([last.pos1, last.pos2, props.pos1, props.pos2]);
+      // props.parent.playPlace([last.pos1, last.pos2, props.pos1, props.pos2]);
+
       //interact
     }
   }
@@ -38,7 +39,6 @@ exports.GetPlace = class extends React.Component {
     return (
       <div>
         <p>hellsxdso</p>
-        {console.log(board[0][0]._hex)}
         <div className="board-row">
           {board.l1.map((line, index) => (
             <Square

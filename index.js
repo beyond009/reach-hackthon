@@ -57,8 +57,8 @@ class Player extends React.Component {
   }
   async getPlace() {
     // Fun([], UInt)
-    const place = await new Promise((resolvePlace) => {
-      this.setState({ view: "GetPlace", playable: true, resolvePlace });
+    const place = await new Promise((resolvePlaceP) => {
+      this.setState({ view: "GetPlace", playable: true, resolvePlaceP });
     });
     this.setState({ view: "WaitingForResults", place });
     return place;
@@ -73,7 +73,8 @@ class Player extends React.Component {
     this.setState({ view: "Timeout" });
   }
   playPlace(place) {
-    this.state.resolvePlace(place);
+    console.log(place);
+    this.state.resolvePlaceP(place);
   }
 }
 

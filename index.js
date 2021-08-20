@@ -57,20 +57,23 @@ class Player extends React.Component {
   }
   async getPlace() {
     // Fun([], UInt)
-    const hand = await new Promise((resolveHandP) => {
-      this.setState({ view: "GetPlace", playable: true, resolveHandP });
+    const place = await new Promise((resolvePlace) => {
+      this.setState({ view: "GetPlace", playable: true, resolvePlace });
     });
-    this.setState({ view: "WaitingForResults", hand });
-    return handToInt[hand];
+    this.setState({ view: "WaitingForResults", place });
+    return place;
   }
   seeOutcome(i) {
     this.setState({ view: "Done", outcome: intToOutcome[i] });
   }
+  seeBoard(i) {
+    this.setState({ view: "GetPlace", playable: true, board: i });
+  }
   informTimeout() {
     this.setState({ view: "Timeout" });
   }
-  playHand(hand) {
-    this.state.resolveHandP(hand);
+  playPlace(place) {
+    this.state.resolvePlace(place);
   }
 }
 

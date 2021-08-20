@@ -8,7 +8,7 @@ import * as backend from "./build/index.main.mjs";
 import { loadStdlib } from "@reach-sh/stdlib";
 const reach = loadStdlib(process.env);
 const handToInt = { ROCK: 0, PAPER: 1, SCISSORS: 2 };
-const intToOutcome = ["Bob wins!", "Draw!", "Alice wins!"];
+const intToOutcome = ["Bob wins!", "Alice wins!"];
 const { standardUnit } = reach;
 const defaults = { defaultFundAmt: "10", defaultWager: "3", standardUnit };
 
@@ -55,19 +55,21 @@ class Player extends React.Component {
   random() {
     return reach.hasRandom.random();
   }
-  async getPlace() {
+  async getMove(board) {
     // Fun([], UInt)
     const place = await new Promise((resolvePlaceP) => {
-      this.setState({ view: "GetPlace", playable: true, resolvePlaceP });
+      this.setState({
+        view: "GetMove",
+        playable: true,
+        board: board,
+        resolvePlaceP,
+      });
     });
     this.setState({ view: "WaitingForResults", place });
     return place;
   }
   seeOutcome(i) {
     this.setState({ view: "Done", outcome: intToOutcome[i] });
-  }
-  seeBoard(i) {
-    this.setState({ view: "GetPlace", playable: true, board: i });
   }
   informTimeout() {
     this.setState({ view: "Timeout" });

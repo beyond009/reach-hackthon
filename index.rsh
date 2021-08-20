@@ -134,18 +134,6 @@ function getLine(singleBoard, i, len) {
   );
 }
 
-function isWin(singleBoard) {
-  return (
-    getLine(singleBoard, 0, 1) ||
-    getLine(singleBoard, 3, 1) ||
-    getLine(singleBoard, 6, 1) ||
-    getLine(singleBoard, 0, 3) ||
-    getLine(singleBoard, 1, 3) ||
-    getLine(singleBoard, 2, 3) ||
-    getLine(singleBoard, 0, 4) ||
-    getLine(singleBoard, 2, 2)
-  );
-}
 // const winner;
 function getValidPlace(interact) {
   const place = interact.getPlace();
@@ -153,10 +141,79 @@ function getValidPlace(interact) {
   return declassify(place);
 }
 
+const ROWS = 3;
+const COLS = 3;
+const CELLS = ROWS * COLS;
+const Board = Array(Bool, CELLS);
+const State = Object({ xsTurn: Bool, xs: Board, os: Board });
+
+const boardMt = Array.replicate(9, false);
+
+const tttInitial = () => ({
+  xsTurn: true,
+  xs: boardMt,
+  os: boardMt,
+});
+
+const cellBoth = (st, i) => st.xs[i] || st.os[i];
+
+const marksAll = (st) => Array.iota(9).map((i) => cellBoth(st, i));
+
+const cell = (r, c) => c + r * COLS;
+
+const op = (op, rhs) => (lhs) => op(lhs, rhs);
+
+const seq = (b, r, c, dr, dc) =>
+  b[cell(r, c)] && b[cell(r + dr, dc(c))] && b[cell(r + dr + dr, dc(dc(c)))];
+
+const row = (b, r) => seq(b, r, 0, 0, op(add, 1));
+const col = (b, c) => seq(b, 0, c, 1, op(add, 0));
+
+const winningP = (b) =>
+  row(b, 0) ||
+  row(b, 1) ||
+  row(b, 2) ||
+  col(b, 0) ||
+  col(b, 1) ||
+  col(b, 2) ||
+  seq(b, 0, 0, 1, op(add, 1)) ||
+  seq(b, 0, 2, 1, op(sub, 1));
+
+const completeP = (b) => b.and();
+
+const tttDone = (st) =>
+  winningP(st.xs) || winningP(st.os) || completeP(marksAll(st));
+
+const legalMove = (m) => 0 <= m && m < CELLS;
+const validMove = (st, m) => !cellBoth(st, m);
+
+function getValidMove(interact, st) {
+  const _m = interact.getMove(st);
+  assume(legalMove(_m));
+  assume(validMove(st, _m));
+  return declassify(_m);
+}
+
+function applyMove(st, m) {
+  require(legalMove(m));
+  require(validMove(st, m));
+  const turn = st.xsTurn;
+  return {
+    xsTurn: !turn,
+    xs: turn ? st.xs.set(m, true) : st.xs,
+    os: turn ? st.os : st.os.set(m, true),
+  };
+}
+
+const tttWinnerIsX = (st) => winningP(st.xs);
+const tttWinnerIsO = (st) => winningP(st.os);
+
+// Protocol
+
 const Player = {
   ...hasRandom,
-  getPlace: Fun([], Array(UInt, 4)),
-  seeBoard: Fun([Board_type], Null),
+  getMove: Fun([State], UInt),
+  endsWith: Fun([State], Null),
   seeOutcome: Fun([UInt], Null),
   informTimeout: Fun([], Null),
 };
@@ -190,47 +247,42 @@ export const main = Reach.App(() => {
     interact.acceptWager(wager);
   });
   Bob.pay(wager).timeout(deadline, () => closeTo(Alice, informTimeout));
-  //waget finish
-  var board = newBoard();
-  invariant(balance() == 2 * wager);
-  // each([Alice, Bob], () => {
-  //   interact.seeBoard(board);
-  // });
 
-  while (true) {
-    each([Alice, Bob], () => {
-      interact.seeBoard(board);
-    });
-    if (board.flag) {
+  var state = tttInitial();
+  invariant(balance() == 2 * wager);
+  while (!tttDone(state)) {
+    if (state.xsTurn) {
       commit();
+
       Alice.only(() => {
-        const placeAlice = getValidPlace(interact);
+        const moveA = getValidMove(interact, state);
       });
-      Alice.publish(placeAlice).timeout(deadline, () =>
-        closeTo(Bob, informTimeout)
-      );
-      board = placeBoard(placeAlice, board);
+      Alice.publish(moveA);
+
+      state = applyMove(state, moveA);
       continue;
     } else {
       commit();
+
       Bob.only(() => {
-        const placeBob = getValidPlace(interact);
+        const moveB = getValidMove(interact, state);
       });
-      Bob.publish(placeBob).timeout(deadline, () =>
-        closeTo(Alice, informTimeout)
-      );
-      board = placeBoard(placeBob, board);
+      Bob.publish(moveB);
+
+      state = applyMove(state, moveB);
       continue;
     }
-    if (isWin()) {
-      const outcome = isWinner() ? A_WINS : B_WINS;
-      break;
-    }
   }
-  // assert(outcome == A_WINS || outcome == B_WINS);
-  transfer(2 * wager).to(outcome == A_WINS ? Alice : Bob);
-  commit();
 
+  const [toA, toB] = tttWinnerIsX(state)
+    ? [2, 0]
+    : tttWinnerIsO(state)
+    ? [0, 2]
+    : [1, 1];
+  transfer(toA * wager).to(Alice);
+  transfer(toB * wager).to(Bob);
+  commit();
+  const outcome = tttWinnerIsX(state) ? 1 : 0;
   each([Alice, Bob], () => {
     interact.seeOutcome(outcome);
   });

@@ -9,65 +9,101 @@ var last = {
 // Player views must be extended.
 // It does not have its own Wrapper view.
 function Square(props) {
-  const [value, setValue] = useState();
-  function onClick() {
-    if (value) {
-      setValue(0);
-      last.val = value;
-      last.pos1 = props.pos1;
-      last.pos2 = props.pos2;
-    } else {
-      setValue(last.val);
-      // props.parent.playPlace([last.pos1, last.pos2, props.pos1, props.pos2]);
-
-      //interact
-    }
-  }
-  useEffect(() => {
-    setValue(props.value);
-  }, []);
   return (
-    <button className="square" onClick={onClick}>
-      {value}
+    <button className="square" onClick={props.onClick}>
+      {props.value}
     </button>
   );
 }
 
-exports.GetPlace = class extends React.Component {
-  render() {
+exports.GetMove = class extends React.Component {
+  constructor(props) {
+    super(props);
     const { parent, playable, board } = this.props;
+    console.log(board);
+    this.state = {
+      board: board,
+      old_board: board,
+      parent: parent,
+      place: -1,
+    };
+  }
+  check(board, i) {
+    return board.os || board.xs[i];
+  }
+  handleClick(i) {
+    if (this.state.board.turn && !this.check(this.state.board, i)) {
+      const board = JSON.parse(JSON.stringify(this.state.old_board));
+      board.xs[i] = true;
+      this.setState({ board: board, place: i });
+    } else if (!this.check(this.state.board, i)) {
+      const board = JSON.parse(JSON.stringify(this.state.old_board));
+      board.os[i] = true;
+      this.setState({ board: board, place: i });
+    }
+    this.state.parent.playPlace(i);
+  }
+  renderValue(i) {
+    if (this.state.board.os[i] || this.state.old_board.os[i]) {
+      return "B";
+    } else if (this.state.board.xs[i] || this.state.old_board.xs[i]) {
+      return "A";
+    } else {
+      return null;
+    }
+  }
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.renderValue(i)}
+        onClick={() => this.handleClick(i)}
+        old={this.check(this.state.old_board, i)}
+      ></Square>
+    );
+  }
+  render() {
     return (
       <div>
-        <p>hellsxdso</p>
         <div className="board-row">
-          {board.l1.map((line, index) => (
-            <Square
-              value={Number(line._hex)}
-              pos1={0}
-              pos2={index}
-              parent={parent}
-            ></Square>
-          ))}
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
         </div>
         <div className="board-row">
-          {board.l2.map((line, index) => (
-            <Square
-              value={Number(line._hex)}
-              pos1={1}
-              pos2={index}
-              parent={parent}
-            ></Square>
-          ))}
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+          {/* <Square
+            value={this.renderValue()}
+            pos1={1}
+            pos2={index}
+            parent={parent}
+          ></Square>
+          <Square
+            value={Number(line._hex)}
+            pos1={1}
+            pos2={index}
+            parent={parent}
+          ></Square>
+          <Square
+            value={Number(line._hex)}
+            pos1={1}
+            pos2={index}
+            parent={parent}
+          ></Square> */}
         </div>
         <div className="board-row">
-          {board.l3.map((line, index) => (
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
+          {/* {board.l3.map((line, index) => (
             <Square
               value={Number(line._hex)}
               pos1={2}
               pos2={index}
               parent={parent}
             ></Square>
-          ))}
+          ))} */}
         </div>
       </div>
     );
